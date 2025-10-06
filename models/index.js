@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const { Sequelize, DataTypes } = require('sequelize');
 
-// Usar directamente DATABASE_URL si existe, sino config tradicional
+// Usar directamente DATABASE_URL si existe
 let sequelize;
 if (process.env.DATABASE_URL) {
   sequelize = new Sequelize(process.env.DATABASE_URL, {
@@ -15,17 +15,32 @@ if (process.env.DATABASE_URL) {
       ssl: process.env.NODE_ENV === 'production' ? {
         require: true,
         rejectUnauthorized: false
-      } : false
+      } : false,
+      // Configuración robusta para Railway
+      keepAlive: true,
+      keepAliveInitialDelayMillis: 0,
     },
     pool: {
       max: 5,
       min: 0,
       acquire: 30000,
-      idle: 10000
+      idle: 10000,
+      evict: 1000,
+      handleDisconnects: true
+    },
+    retry: {
+      max: 5,
+      timeout: 3000,
+      match: [
+        /ECONNRESET/,
+        /ENOTFOUND/,
+        /ECONNREFUSED/,
+        /ETIMEDOUT/,
+        /EHOSTUNREACH/
+      ]
     }
   });
 } else {
-  // Fallback al config tradicional
   const env = process.env.NODE_ENV || 'development';
   const config = require('../config/database')[env];
   sequelize = config.url ? 

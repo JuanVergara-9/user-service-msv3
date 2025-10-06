@@ -81,4 +81,18 @@ async function startServer() {
   }
 }
 
+// Agrega esto después de console.log('🔄 Testing initial database connection...');
+console.log('Using DATABASE_URL format:', process.env.DATABASE_URL.replace(/:[^:@]*@/, ':****@'));
+
+try {
+  await sequelize.authenticate();
+  console.log('✅ Database connected successfully on startup');
+} catch (error) {
+  console.error('❌ Detailed connection error:');
+  console.error('Error name:', error.name);
+  console.error('Error code:', error.original?.code);
+  console.error('Error message:', error.message);
+  throw error;
+}
+
 startServer();
