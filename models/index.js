@@ -4,53 +4,43 @@ const fs = require('fs');
 const path = require('path');
 const { Sequelize, DataTypes } = require('sequelize');
 
-// Usar directamente DATABASE_URL si existe
+const useSSL = String(process.env.DB_SSL).toLowerCase() === 'true';
+
 let sequelize;
 if (process.env.DATABASE_URL) {
   sequelize = new Sequelize(process.env.DATABASE_URL, {
     dialect: 'postgres',
-    protocol: 'postgres',
     logging: false,
-    dialectOptions: {
-      ssl: process.env.NODE_ENV === 'production' ? {
-        require: true,
-        rejectUnauthorized: false
-      } : false,
-      // Configuración robusta para Railway
-      keepAlive: true,
-      keepAliveInitialDelayMillis: 0,
-    },
+    dialectOptions: useSSL
+      ? {
+          ssl: { require: true, rejectUnauthorized: false },
+          keepAlive: true,
+          keepAliveInitialDelayMillis: 0
+        }
+      : {},
     pool: {
-      max: 5,
+      max: 10,
       min: 0,
       acquire: 30000,
       idle: 10000,
-      evict: 1000,
-      handleDisconnects: true
+      evict: 1000
     },
     retry: {
       max: 5,
-      timeout: 3000,
-      match: [
-        /ECONNRESET/,
-        /ENOTFOUND/,
-        /ECONNREFUSED/,
-        /ETIMEDOUT/,
-        /EHOSTUNREACH/
-      ]
+      match: [/ECONNRESET/, /ENOTFOUND/, /ECONNREFUSED/, /ETIMEDOUT/, /EHOSTUNREACH/]
     }
   });
 } else {
   const env = process.env.NODE_ENV || 'development';
   const config = require('../config/database')[env];
-  sequelize = config.url ? 
-    new Sequelize(config.url, config) :
-    new Sequelize(config.database, config.username, config.password, config);
+  sequelize = config.url
+    ? new Sequelize(config.url, { ...config, logging: false })
+    : new Sequelize(config.database, config.username, config.password, { ...config, logging: false });
 }
 
 const db = {};
 
-// Cargar modelos
+// cargar modelos
 fs.readdirSync(__dirname)
   .filter(file => file !== 'index.js' && file.endsWith('.js'))
   .forEach(file => {
@@ -58,11 +48,9 @@ fs.readdirSync(__dirname)
     db[model.name] = model;
   });
 
-// Asociaciones
+// asociaciones
 Object.values(db).forEach(model => {
-  if (model.associate) {
-    model.associate(db);
-  }
+  if (typeof model.associate === 'function') model.associate(db);
 });
 
 db.sequelize = sequelize;
