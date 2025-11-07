@@ -1,4 +1,9 @@
-require('dotenv').config();
+// Cargar .env.local primero si existe (desarrollo local), luego .env
+const fs = require('fs');
+if (fs.existsSync('.env.local')) {
+  require('dotenv').config({ path: '.env.local' });
+}
+require('dotenv').config(); // .env tiene menor prioridad
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -49,7 +54,9 @@ app.get('/readyz', async (_req, res) => {
 });
 
 // routes
+console.log('[user-service] Registering routes at /api/v1/users');
 app.use('/api/v1/users', userRoutes);
+console.log('[user-service] Routes registered successfully');
 
 // error handler
 app.use((err, _req, res, _next) => {

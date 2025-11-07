@@ -2,8 +2,31 @@ const router = require('express').Router();
 const { requireAuth } = require('../middlewares/auth.middleware');
 const ctrl = require('../controllers/user.controller');
 
+// Importar uploadImage con manejo de errores
+let uploadImage;
+try {
+  const uploadMiddleware = require('../middlewares/upload.middleware');
+  uploadImage = uploadMiddleware.uploadImage;
+  console.log('[user.routes] uploadImage middleware loaded successfully');
+} catch (error) {
+  console.error('[user.routes] Error loading uploadImage middleware:', error);
+  // Crear un middleware dummy que falle con un error claro
+  uploadImage = {
+    single: () => (req, res, next) => {
+      return res.status(500).json({ 
+        error: { code: 'USER.UPLOAD_MIDDLEWARE_ERROR', message: 'Upload middleware no disponible' } 
+      });
+    }
+  };
+}
+
 router.get('/me', requireAuth, ctrl.getMe);
 router.put('/me', requireAuth, ctrl.putMe);
+// Registrar ruta de avatar con logging
+console.log('[user.routes] Registering POST /me/avatar route');
+router.post('/me/avatar', requireAuth, uploadImage.single('file'), ctrl.uploadAvatar);
+console.log('[user.routes] Registering DELETE /me/avatar route');
+router.delete('/me/avatar', requireAuth, ctrl.deleteAvatar);
 
 // Endpoint para obtener perfil por ID (para compatibilidad con el gateway)
 router.get('/:id', requireAuth, async (req, res) => {

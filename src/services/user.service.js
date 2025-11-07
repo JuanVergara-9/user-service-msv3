@@ -28,4 +28,18 @@ async function updateProfile(userId, payload){
   return p;
 }
 
-module.exports={ getOrCreateProfile, updateProfile };
+async function setAvatar(userId, avatar) {
+  const p = await getOrCreateProfile(userId);
+  await p.update({
+    avatar_url: avatar.url
+  });
+  return p;
+}
+
+async function clearAvatar(userId) {
+  const p = await getOrCreateProfile(userId);
+  await p.update({ avatar_url: null });
+  return p;
+}
+
+module.exports={ getOrCreateProfile, updateProfile, setAvatar, clearAvatar };
