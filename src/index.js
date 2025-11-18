@@ -11,6 +11,7 @@ const morgan = require('morgan');
 const { v4: uuidv4 } = require('uuid');
 const { sequelize } = require('../models');
 const userRoutes = require('./routes/user.routes');
+const feedbackRoutes = require('./routes/feedback.routes');
 
 const app = express();
 const PORT = process.env.PORT || 4002;
@@ -56,6 +57,8 @@ app.get('/readyz', async (_req, res) => {
 // routes
 console.log('[user-service] Registering routes at /api/v1/users');
 app.use('/api/v1/users', userRoutes);
+console.log('[user-service] Registering feedback routes at /api/v1/feedback');
+app.use('/api/v1/feedback', feedbackRoutes);
 console.log('[user-service] Routes registered successfully');
 
 // error handler
